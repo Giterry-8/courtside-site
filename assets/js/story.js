@@ -116,11 +116,18 @@ export function initStory() {
       onUnavailable: () => { if (name === 'lg') useSet('sm'); },
     });
     seq.setWanted(target);
-    // The hero still loads first; the remaining states follow once the page has loaded.
+    // The hero still loads first; the remaining states follow as soon as it has
+    // arrived (or the page has loaded), without waiting for fonts or lazy images.
     const current = seq;
-    const begin = () => { if (seq === current) current.start(); };
-    if (document.readyState === 'complete') begin();
-    else window.addEventListener('load', begin, { once: true });
+    let started = false;
+    const begin = () => { if (!started && seq === current) { started = true; current.start(); } };
+    const poster = story.querySelector('.story__poster');
+    if (document.readyState === 'complete' || (poster.complete && poster.naturalWidth)) begin();
+    else {
+      poster.addEventListener('load', begin, { once: true });
+      poster.addEventListener('error', begin, { once: true });
+      window.addEventListener('load', begin, { once: true });
+    }
   }
 
   function paint(image, n) {
